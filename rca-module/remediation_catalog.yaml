@@ -1,0 +1,115 @@
+# Catalogue de remédiations par type d'incident (Ticket "Knowledge Base").
+#
+# Basé sur des pratiques DevOps standards (pas de runbooks internes
+# disponibles pour l'instant) — à ajuster avec l'expérience réelle de
+# l'équipe au fil du temps.
+#
+# Chaque catégorie (alignée sur ERROR_CATEGORIES d'Epic 2) liste une ou
+# plusieurs remédiations candidates, avec :
+#   - action_id            : identifiant unique de l'action
+#   - description           : ce que fait concrètement l'action
+#   - conditions             : garde-fous avant d'appliquer l'action
+#   - risk_level              : none | low | medium | high
+#   - downtime_seconds         : coupure de service ESTIMÉE causée par
+#                                 l'action elle-même (Ticket "Moteur de
+#                                 décision", critère "downtime potentiel").
+#                                 Valeur d'exemple, à affiner avec la
+#                                 pratique réelle. "escalate_human" n'a
+#                                 pas de downtime automatique : c'est un
+#                                 humain qui agit, pas l'agent.
+#
+# Conditions reconnues :
+#   max_attempts_per_15min / max_attempts_per_hour / max_attempts_per_day
+#       -> limite le nombre de tentatives de CETTE action sur la MÊME
+#          entité dans la fenêtre donnée (évite les boucles de
+#          redémarrage infinies, cf. Bug 1 du cahier des charges initial)
+#   requires_previous_stable_version
+#       -> l'action n'est éligible que si une version stable antérieure
+#          existe pour cette entité (info fourni par le contexte appelant)
+
+remediations:
+  OutOfMemory:
+    - action_id: restart_pod
+      description: "Redémarrer le pod (le crash est peut-être transitoire)"
+      conditions: {max_attempts_per_15min: 3}
+      risk_level: low
+      downtime_seconds: 15
+    - action_id: scale_up_memory
+      description: "Augmenter la limite mémoire du déploiement"
+      conditions: {max_attempts_per_hour: 2}
+      risk_level: medium
+      downtime_seconds: 90
+
+  DiskFull:
+    - action_id: cleanup_old_logs
+      description: "Purger les anciens logs/fichiers temporaires"
+      conditions: {max_attempts_per_hour: 4}
+      risk_level: low
+      downtime_seconds: 5
+    - action_id: scale_up_storage
+      description: "Augmenter la taille du volume de stockage"
+      conditions: {max_attempts_per_day: 1}
+      risk_level: medium
+      downtime_seconds: 120
+
+  NetworkTimeout:
+    - action_id: restart_pod
+      description: "Redémarrer le pod (peut relancer les connexions réseau)"
+      conditions: {max_attempts_per_15min: 3}
+      risk_level: low
+      downtime_seconds: 15
+    - action_id: escalate_human
+      description: "Vérifier une dépendance externe hors de portée de l'agent"
+      conditions: {}
+      risk_level: none
+      downtime_seconds: 0
+
+  CrashLoopBackOff:
+    - action_id: restart_pod
+      description: "Redémarrer le pod (premier réflexe, faible risque)"
+      conditions: {max_attempts_per_15min: 3}
+      risk_level: low
+      downtime_seconds: 15
+    - action_id: rollback
+      description: "Revenir à la dernière version stable du déploiement"
+      conditions: {requires_previous_stable_version: true, max_attempts_per_hour: 2}
+      risk_level: medium
+      downtime_seconds: 90
+
+  ConfigError:
+    - action_id: rollback
+      description: "Revenir à la dernière configuration stable connue"
+      conditions: {requires_previous_stable_version: true, max_attempts_per_hour: 2}
+      risk_level: medium
+      downtime_seconds: 90
+    - action_id: escalate_human
+      description: "Erreur de config nécessitant une revue manuelle"
+      conditions: {}
+      risk_level: none
+      downtime_seconds: 0
+
+  PermissionDenied:
+    - action_id: escalate_human
+      description: "Droits IAM/RBAC à corriger manuellement (jamais automatisé)"
+      conditions: {}
+      risk_level: none
+      downtime_seconds: 0
+
+  Unknown:
+    - action_id: escalate_human
+      description: "Catégorie non reconnue : pas de remédiation automatique par sécurité"
+      conditions: {}
+      risk_level: none
+      downtime_seconds: 0
+
+  DeploymentCrash:
+    # Catégorie dédiée à la démo : un pod géré par un Deployment (pas un
+    # pod isolé) qui redémarre en boucle. Contrairement à CrashLoopBackOff
+    # (pod isolé, où restart_pod supprime sans retour possible),
+    # restart_deployment déclenche un vrai rollout Kubernetes, qui recrée
+    # correctement un nouveau pod automatiquement.
+    - action_id: restart_deployment
+      description: "Redémarrer le déploiement (rollout géré par Kubernetes)"
+      conditions: {max_attempts_per_15min: 3}
+      risk_level: low
+      downtime_seconds: 20

@@ -1,0 +1,11 @@
+allowed_actions:
+- restart_pod
+- restart_deployment
+- scale_horizontally
+- cleanup_old_logs
+- cordon_node
+kill_switch:
+  enabled: false
+scope_limits:
+  max_pods_affected: 5
+  max_scale_factor: 3.0

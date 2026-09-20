@@ -1,0 +1,7 @@
+# Identifiants du dashboard (US 4.1, critère 3 : "interface web sécurisée").
+#
+# ⚠️ À CHANGER avant tout usage réel — ces valeurs sont des exemples.
+# En production, ne jamais committer ce fichier avec un vrai mot de
+# passe (l'ajouter à .gitignore).
+username: "admin"
+password: "changeme"

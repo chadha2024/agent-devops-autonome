@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Dashboard — Agent DevOps Autonome</title>
+<style>
+  :root { --deep:#065A82; --teal:#1C7293; --midnight:#21295C; --bg:#F7F8FA; --text:#1A1A1A; --muted:#5A5A6A; }
+  body { font-family: -apple-system, Segoe UI, Calibri, sans-serif; background:var(--bg); color:var(--text); margin:0; padding:2rem; }
+  h1 { color:var(--midnight); font-size:1.8rem; margin-bottom:0.2rem; }
+  .subtitle { color:var(--muted); margin-bottom:2rem; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:1rem; margin-bottom:2rem; }
+  .card { background:white; border-radius:10px; padding:1.2rem; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+  .card .value { font-size:2rem; font-weight:700; color:var(--deep); }
+  .card .label { color:var(--muted); font-size:0.85rem; }
+  .section { background:white; border-radius:10px; padding:1.5rem; margin-bottom:1.5rem; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+  .section h2 { margin-top:0; font-size:1.1rem; color:var(--midnight); }
+  .bar-row { display:flex; align-items:center; gap:0.8rem; margin:0.6rem 0; }
+  .bar-label { width:160px; font-size:0.9rem; }
+  .bar-track { flex:1; background:#EEE; border-radius:6px; height:14px; overflow:hidden; }
+  .bar-fill { height:100%; border-radius:6px; }
+  .bar-value { width:40px; text-align:right; font-size:0.85rem; color:var(--muted); }
+  table { width:100%; border-collapse:collapse; font-size:0.9rem; }
+  th, td { text-align:left; padding:0.5rem; border-bottom:1px solid #EEE; }
+  th { color:var(--muted); font-weight:600; }
+  .stat-chip { display:inline-flex; flex-direction:column; align-items:center; background:#F0F1F5; border-radius:8px; padding:0.6rem 1rem; margin:0.3rem; }
+  .chip-value { font-weight:700; color:var(--midnight); }
+  .chip-label { font-size:0.75rem; color:var(--muted); }
+  .empty { color:var(--muted); font-style:italic; }
+</style>
+</head>
+<body>
+  <h1>Agent DevOps Autonome — Dashboard</h1>
+  <p class="subtitle">Audit trail et reporting des remédiations</p>
+
+  <div class="grid">
+    <div class="card"><div class="value">3</div><div class="label">Tentatives totales</div></div>
+    <div class="card"><div class="value">67%</div><div class="label">Taux de succès global</div></div>
+    <div class="card"><div class="value">1</div><div class="label">Échecs</div></div>
+    <div class="card"><div class="value">0.6</div><div class="label">MTTR</div></div>
+  </div>
+
+  <div class="section">
+    <h2>Taux de succès par action</h2>
+    
+    <div class="bar-row">
+      <span class="bar-label">restart_pod</span>
+      <div class="bar-track"><div class="bar-fill" style="width:100%;background:#2E7D5B"></div></div>
+      <span class="bar-value">100%</span>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">rollback</span>
+      <div class="bar-track"><div class="bar-fill" style="width:0%;background:#B3261E"></div></div>
+      <span class="bar-value">0%</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Approbations</h2>
+    <div class="stat-chip"><span class="chip-value">2</span><span class="chip-label">auto_approved</span></div><div class="stat-chip"><span class="chip-value">1</span><span class="chip-label">approved</span></div><div class="stat-chip"><span class="chip-value">1</span><span class="chip-label">escalated</span></div>
+  </div>
+
+  <div class="section">
+    <h2>Échecs récents (alertes)</h2>
+    <table>
+      <tr><th>Date</th><th>Entité</th><th>Action</th><th>Catégorie</th></tr>
+      
+    <tr>
+      <td>2026-08-19 20:44 UTC</td>
+      <td>api-y</td>
+      <td>rollback</td>
+      <td>CrashLoopBackOff</td>
+    </tr>
+    </table>
+  </div>
+</body>
+</html>

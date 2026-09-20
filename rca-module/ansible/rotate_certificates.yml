@@ -1,0 +1,11 @@
+# EXEMPLE — à adapter selon comment tes certificats sont gérés
+# (AWS ACM, cert-manager dans le cluster, etc.)
+---
+- hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Demander le renouvellement du certificat ACM
+      amazon.aws.acm_certificate:
+        name: "{{ cert_name }}"
+        state: present
+        domain_name: "REMPLACE_PAR_TON_DOMAINE.exemple.com"

@@ -1,0 +1,14 @@
+# Seuils de "retour à la normale" (US 3.2, critère 2).
+#
+# Différent de thresholds.yaml (anomaly-detector), qui définit quand
+# déclencher une ALERTE. Ici, on définit en dessous de quelle valeur une
+# métrique est considérée comme "revenue à la normale" après une
+# remédiation — c'est la vraie vérification demandée par le ticket,
+# pas juste "est-ce moins pire qu'avant l'action".
+#
+# ⚠️ Valeurs d'exemple, cohérentes avec les seuils critiques d'Epic 1
+# (cpu 90%, ram 85%) — à ajuster avec l'expérience réelle.
+
+normal_thresholds:
+  cpu_percent: 80
+  ram_percent: 80

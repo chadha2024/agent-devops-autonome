@@ -1,0 +1,54 @@
+# Classification business de chaque entité (Ticket "Sévérité", critère 2).
+#
+# ⚠️ EXEMPLE à valider/compléter avec les vraies priorités business de
+# l'entreprise (quels services génèrent du CA, quels ont un vrai
+# engagement SLA...). Sans ça, le scoring de sévérité tourne mais reflète
+# une hiérarchie arbitraire, pas la vraie criticité métier.
+#
+# Format :
+#   <nom_entité>:
+#     tier: critical | high | medium | low
+#     sla_minutes: <délai cible de résolution pour ce palier, en minutes>
+
+criticality:
+  crash-test:
+    tier: low
+    sla_minutes: 1440   # 24h — pod de test, pas urgent
+
+  anomaly-detector:
+    tier: high
+    sla_minutes: 60     # 1h — l'agent lui-même doit rester opérationnel
+
+  llm-log-analyzer:
+    tier: high
+    sla_minutes: 60
+
+  rds-postgres:
+    tier: critical
+    sla_minutes: 15     # 15 min — toute la persistance de l'agent en dépend
+
+  eks-node-group:
+    tier: critical
+    sla_minutes: 15     # la fondation : si ça tombe, tout tombe
+
+  prometheus:
+    tier: medium
+    sla_minutes: 240    # 4h — surveillance dégradée, pas un arrêt total
+
+  loki:
+    tier: medium
+    sla_minutes: 240
+
+  sqs-queue:
+    tier: high
+    sla_minutes: 60
+
+  gemini-api:
+    tier: medium
+    sla_minutes: 240
+
+# Palier par défaut pour toute entité absente de la liste ci-dessus
+# (mieux vaut sur-prioriser un inconnu que le sous-estimer silencieusement)
+default:
+  tier: medium
+  sla_minutes: 240

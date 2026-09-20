@@ -1,0 +1,9 @@
+# EXEMPLE — à adapter avec les vrais critères de nettoyage souhaités
+# (ex: snapshots EBS de plus de 30 jours, volumes non attachés...).
+---
+- hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Nettoyer les ressources correspondant au filtre donné
+      debug:
+        msg: "À implémenter : nettoyage réel selon le filtre '{{ filter }}'"

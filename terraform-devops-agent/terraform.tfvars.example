@@ -1,0 +1,9 @@
+# Copie ce fichier en "terraform.tfvars" et remplis tes vraies valeurs.
+# NE JAMAIS commiter terraform.tfvars dans Git (ajoute-le au .gitignore).
+
+aws_region   = "eu-west-3"
+project_name = "devops-agent"
+environment  = "staging"
+
+db_username = "agentadmin"
+db_password = "CHANGE_MOI_MOT_DE_PASSE_FORT"

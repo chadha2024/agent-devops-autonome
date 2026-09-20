@@ -1,0 +1,46 @@
+# Graphe de dépendances entre services/infra/réseau (Ticket RCA, critère 2).
+#
+# Basé sur la vraie infrastructure décrite dans le README Terraform
+# (EKS + RDS PostgreSQL + SQS + CloudWatch). Les entités "service" ici sont
+# les modules de l'agent lui-même (anomaly-detector, llm-log-analyzer),
+# qui dépendent de briques infra managées AWS.
+
+entities:
+  anomaly-detector:
+    type: service
+    depends_on: [prometheus, sqs-queue]
+    hosted_on: "192.168.49.2:9100"
+
+  llm-log-analyzer:
+    type: service
+    depends_on: [loki, gemini-api, sqs-queue]
+    hosted_on: "192.168.49.2:9100"
+
+  prometheus:
+    type: infra
+    depends_on: [eks-node-group]
+
+  loki:
+    type: infra
+    depends_on: [eks-node-group]
+
+  sqs-queue:
+    type: infra
+    depends_on: []
+
+  gemini-api:
+    type: network
+    depends_on: []
+
+  rds-postgres:
+    type: infra
+    depends_on: [eks-node-group]
+
+  eks-node-group:
+    type: infra
+    depends_on: []
+
+  crash-test:
+    type: service
+    depends_on: []
+    hosted_on: "192.168.49.2:9100"

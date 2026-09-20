@@ -1,0 +1,105 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: agent-devops-alerting-rules
+  namespace: monitoring
+  labels:
+    # Ce label permet à l'operateur Prometheus (déjà installé via Helm)
+    # de détecter automatiquement ce fichier de règles
+    release: monitoring
+spec:
+  groups:
+    - name: agent-devops.slo
+      rules:
+        # ---------------------------------------------------------------
+        # SLO 1 : Usage CPU des nodes (seuil aligné sur thresholds.yaml
+        # de l'US 1.2 : critical=90%, duration=300s)
+        # ---------------------------------------------------------------
+        - alert: HighNodeCPUUsage
+          expr: |
+            100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+          for: 5m
+          labels:
+            severity: warning
+            slo: cpu
+          annotations:
+            summary: "Usage CPU élevé sur {{ $labels.instance }}"
+            description: "Le node {{ $labels.instance }} dépasse 80% de CPU depuis plus de 5 minutes."
+
+        # ---------------------------------------------------------------
+        # SLO 2 : Usage mémoire des pods < 85% de la limite allouée
+        # ---------------------------------------------------------------
+        - alert: HighPodMemoryUsage
+          expr: |
+            (sum by (pod, namespace) (container_memory_working_set_bytes{container!=""})
+              / sum by (pod, namespace) (kube_pod_container_resource_limits{resource="memory"})) * 100 > 85
+          for: 5m
+          labels:
+            severity: warning
+            slo: memory
+          annotations:
+            summary: "Mémoire élevée pour le pod {{ $labels.pod }}"
+            description: "Le pod {{ $labels.pod }} (namespace {{ $labels.namespace }}) dépasse 85% de sa limite mémoire."
+
+        # ---------------------------------------------------------------
+        # SLO 3 : Latence p95 < 500ms
+        # Note : nécessite que ton application expose une métrique
+        # "http_request_duration_seconds" (histogram) — à ajouter plus
+        # tard côté code de l'agent/API surveillée.
+        # ---------------------------------------------------------------
+        - alert: HighRequestLatency
+          expr: |
+            histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, service)) > 0.5
+          for: 5m
+          labels:
+            severity: warning
+            slo: latency
+          annotations:
+            summary: "Latence élevée pour {{ $labels.service }}"
+            description: "Le 95e percentile de latence dépasse 500ms depuis plus de 5 minutes."
+
+        # ---------------------------------------------------------------
+        # SLO 4 : Taux d'erreur HTTP < 5% sur 5 minutes
+        # Note : nécessite une métrique "http_requests_total" avec un
+        # label "status" ou "code" exposée par l'application surveillée.
+        # ---------------------------------------------------------------
+        - alert: HighErrorRate
+          expr: |
+            (sum(rate(http_requests_total{status=~"5.."}[5m])) by (service)
+              / sum(rate(http_requests_total[5m])) by (service)) * 100 > 5
+          for: 5m
+          labels:
+            severity: critical
+            slo: error_rate
+          annotations:
+            summary: "Taux d'erreur élevé pour {{ $labels.service }}"
+            description: "Plus de 5% des requêtes échouent (erreurs 5xx) depuis plus de 5 minutes."
+
+        # ---------------------------------------------------------------
+        # Bonus lié au Bug 1 de ton cahier des charges : CrashLoopBackOff
+        # ---------------------------------------------------------------
+        - alert: PodCrashLoopBackOff
+          expr: |
+            increase(kube_pod_container_status_restarts_total[15m]) > 3
+          for: 5m
+          labels:
+            severity: critical
+            slo: stability
+          annotations:
+            summary: "Redémarrages fréquents pour {{ $labels.pod }}"
+            description: "Le pod {{ $labels.pod }} a redémarré plus de 3 fois en 15 minutes (CrashLoopBackOff probable)."
+
+        # ---------------------------------------------------------------
+        # SLO 5 : Trafic réseau (seuil aligné sur thresholds.yaml de
+        # l'US 1.2 : critical=10 Mo/s, duration=300s)
+        # ---------------------------------------------------------------
+        - alert: HighNetworkTraffic
+          expr: |
+            rate(node_network_receive_bytes_total{device!="lo"}[5m]) > 10000000
+          for: 5m
+          labels:
+            severity: warning
+            slo: network
+          annotations:
+            summary: "Trafic réseau élevé sur {{ $labels.instance }}"
+            description: "Le node {{ $labels.instance }} dépasse 10 Mo/s de trafic entrant depuis plus de 5 minutes."

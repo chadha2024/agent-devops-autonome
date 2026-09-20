@@ -1,0 +1,16 @@
+# Seuils critiques pour la détection d'anomalies (US 1.2)
+# duration_seconds : le seuil doit être dépassé pendant AU MOINS cette durée
+# pour déclencher une alerte (évite les faux positifs sur des pics courts)
+
+thresholds:
+  cpu_percent:
+    critical: 90
+    duration_seconds: 300  # 5 minutes
+
+  ram_percent:
+    critical: 85
+    duration_seconds: 300   # 5 minutes
+
+  network_bytes_per_sec:
+    critical: 10000000      # 10 Mo/s, à ajuster selon votre infrastructure
+    duration_seconds: 300

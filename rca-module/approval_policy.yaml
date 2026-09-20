@@ -1,0 +1,40 @@
+# Politiques d'approbation (Ticket "Politiques d'approbation").
+#
+# ⚠️ Valeurs par défaut raisonnables, à ajuster avec les vrais rôles et
+# délais de ton équipe (pas de process d'astreinte réel disponible pour
+# l'instant).
+#
+# US 4.2 : mode d'approbation manuelle global. Si activé, TOUTE action
+# (même risque "low", normalement auto-approuvée) attend une validation
+# humaine explicite via un bouton Approuver/Rejeter dans le dashboard.
+manual_approval_mode: false
+# Chaîne d'approbation par niveau de risque :
+#   low    -> auto-approve, personne n'est notifié (déjà géré en amont)
+#   medium -> astreinte (on-call)
+#   high   -> lead technique
+#
+# Timeout par priorité (P1-P4, cf. severity_engine.py) : plus l'incident
+# est urgent, moins on attend avant d'escalader.
+
+approval_chain:
+  medium:
+    approver_role: "on-call-engineer"
+  high:
+    approver_role: "tech-lead"
+
+timeout_minutes_by_priority:
+  P1: 10
+  P2: 30
+  P3: 60
+  P4: 240
+
+# Si l'approbateur initial ne répond pas dans le délai : on escalade vers
+# ce rôle. Si même l'escalade ne répond pas à temps, on déclenche une
+# alerte critique plutôt que de rester bloqué silencieusement.
+escalation:
+  escalate_to_role: "tech-lead"
+  escalation_timeout_minutes_by_priority:
+    P1: 5
+    P2: 15
+    P3: 30
+    P4: 120

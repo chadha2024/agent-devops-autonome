@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Agent DevOps — Centre de contrôle</title>
+<style>
+  :root {
+    --bg:#0A0E1F; --panel:#131A34; --panel2:#1B234A; --border:#2A3563;
+    --text:#EDEFF7; --muted:#8792B8; --green:#22C58B; --red:#E5484D; --amber:#F5A623; --gray:#4B5570; --blue:#3B82F6;
+  }
+  * { box-sizing:border-box; }
+  body { font-family:-apple-system,'Segoe UI',Calibri,sans-serif; background:var(--bg); color:var(--text); margin:0; padding:1.8rem 2.2rem; }
+  .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1.6rem; }
+  .header h1 { font-size:1.5rem; margin:0; font-weight:700; }
+  .header .sub { color:var(--muted); font-size:0.85rem; margin-top:0.2rem; }
+  .heartbeat { display:flex; align-items:center; gap:0.5rem; background:var(--panel); border:1px solid var(--border); border-radius:20px; padding:0.5rem 1rem; }
+  .heartbeat-dot { width:10px; height:10px; border-radius:50%; background:var(--green); animation:blip 1.6s infinite; }
+  .heartbeat.stopped .heartbeat-dot { background:var(--gray); animation:none; }
+  @keyframes blip { 0%,100%{opacity:1; transform:scale(1);} 50%{opacity:0.4; transform:scale(1.3);} }
+
+  .grid { display:grid; grid-template-columns: 300px 1fr 320px; gap:1.4rem; }
+
+  .panel { background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:1.3rem; }
+  .panel h2 { font-size:0.8rem; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); margin:0 0 1rem 0; }
+
+  .node-box { width:100%; aspect-ratio:1/1; border-radius:18px; display:flex; flex-direction:column; align-items:center; justify-content:center; transition:background 0.6s, box-shadow 0.6s; }
+  .node-box .icon { font-size:3rem; }
+  .node-box .name { font-weight:700; margin-top:0.6rem; word-break:break-word; padding:0 1rem; text-align:center; }
+  .status-healthy { background:#0F3D2E; box-shadow:0 0 30px rgba(34,197,139,0.25); border:2px solid var(--green); }
+  .status-alert { background:#4A1518; box-shadow:0 0 30px rgba(229,72,77,0.35); border:2px solid var(--red); animation:pulse 1s infinite; }
+  .status-waiting, .status-remediating { background:#4A3510; box-shadow:0 0 30px rgba(245,166,35,0.3); border:2px solid var(--amber); animation:pulse 1.3s infinite; }
+  .status-recovered { background:#0F3D2E; box-shadow:0 0 30px rgba(34,197,139,0.3); border:2px solid var(--green); }
+  .status-failed { background:#4A1518; box-shadow:0 0 30px rgba(229,72,77,0.35); border:2px solid var(--red); }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.75;} }
+  .status-label { text-align:center; font-weight:700; letter-spacing:0.05em; margin-top:0.8rem; font-size:0.95rem; }
+
+  .step-row { display:flex; align-items:center; gap:0.8rem; padding:0.55rem 0; border-bottom:1px solid var(--border); }
+  .step-row:last-child { border-bottom:none; }
+  .step-dot { width:28px; height:28px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.75rem; transition:background 0.4s; }
+  .dot-pending { background:var(--gray); color:#C9CEDD; }
+  .dot-active { background:var(--amber); color:#1a1200; animation:pulse 1s infinite; }
+  .dot-done { background:var(--green); color:#062; }
+  .dot-failed, .dot-blocked { background:var(--red); color:white; }
+  .dot-waiting { background:var(--amber); color:#1a1200; }
+  .step-label { width:110px; font-weight:600; font-size:0.9rem; }
+  .step-detail { color:var(--muted); font-size:0.82rem; flex:1; }
+
+  .log-feed { display:flex; flex-direction:column; gap:0.5rem; max-height:520px; overflow-y:auto; }
+  .log-entry { font-size:0.82rem; padding:0.5rem 0.7rem; background:var(--panel2); border-radius:8px; border-left:3px solid var(--blue); }
+  .log-entry .log-time { color:var(--muted); font-size:0.72rem; display:block; margin-bottom:0.15rem; }
+  .log-entry.alert { border-left-color:var(--red); }
+  .log-entry.success { border-left-color:var(--green); }
+
+  .footer { margin-top:1.2rem; color:var(--muted); font-size:0.8rem; text-align:center; }
+
+  .choice-btn { display:block; width:100%; text-align:left; background:var(--panel2); border:1px solid var(--border); border-radius:8px; color:var(--text); padding:0.7rem 0.9rem; margin-bottom:0.5rem; cursor:pointer; font-family:inherit; font-size:0.85rem; transition:background 0.2s, border-color 0.2s; }
+  .choice-btn:hover { background:#243067; border-color:var(--blue); }
+  .choice-btn .risk-tag { display:inline-block; font-size:0.68rem; font-weight:700; text-transform:uppercase; padding:0.1rem 0.4rem; border-radius:4px; margin-left:0.4rem; }
+  .risk-low { background:#0F3D2E; color:var(--green); }
+  .risk-medium { background:#4A3510; color:var(--amber); }
+  .risk-high, .risk-none { background:#4A1518; color:var(--red); }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <h1>Agent DevOps Autonome — Centre de contrôle</h1>
+      <div class="sub">Surveillance continue — se met à jour toutes les secondes</div>
+    </div>
+    <div class="heartbeat" id="heartbeat">
+      <div class="heartbeat-dot"></div>
+      <span id="heartbeat-label">En surveillance</span>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>État du nœud</h2>
+      <div id="node-box" class="node-box status-healthy">
+        <div class="icon" id="node-icon">✓</div>
+        <div class="name" id="entity-name">En attente...</div>
+      </div>
+      <div class="status-label" id="node-status-label">HEALTHY</div>
+    </div>
+
+    <div class="panel">
+      <h2>Chaîne de remédiation</h2>
+      <div id="pipeline"></div>
+      <div id="choice-panel" style="display:none; margin-top:1rem; border-top:1px solid var(--border); padding-top:1rem;">
+        <div style="color:var(--amber); font-weight:700; margin-bottom:0.6rem;">⏳ Choix humain requis</div>
+        <div id="choice-buttons"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Journal d'événements</h2>
+      <div class="log-feed" id="log-feed"></div>
+    </div>
+  </div>
+
+  <div class="footer" id="footer">Connexion...</div>
+  <div class="footer" id="last-cycle-note" style="display:none;">Dernière chaîne exécutée avec succès — en attente du prochain incident</div>
+
+<script>
+const STEPS = ["Alerte", "RCA", "Sévérité", "Décision", "Guardrails", "Approbation", "Exécution", "Vérification"];
+const NODE_ICONS = { healthy: "✓", alert: "⚠", waiting: "⏳", remediating: "⚙", recovered: "✓", failed: "✗" };
+
+function renderPipeline(steps) {
+  const el = document.getElementById("pipeline");
+  el.innerHTML = "";
+  STEPS.forEach((name, i) => {
+    const status = steps[name] || "pending";
+    const row = document.createElement("div");
+    row.className = "step-row";
+    row.innerHTML = `
+      <div class="step-dot dot-${status}">${i + 1}</div>
+      <div class="step-label">${name}</div>
+    `;
+    el.appendChild(row);
+  });
+}
+
+function renderLog(entries) {
+  const el = document.getElementById("log-feed");
+  el.innerHTML = "";
+  entries.slice().reverse().forEach(e => {
+    const div = document.createElement("div");
+    let cls = "log-entry";
+    if (e.message.includes("⚠") || e.message.toLowerCase().includes("échec")) cls += " alert";
+    if (e.message.includes("✓") || e.message.toLowerCase().includes("confirmée")) cls += " success";
+    div.className = cls;
+    div.innerHTML = `<span class="log-time">${e.time}</span>${e.message}`;
+    el.appendChild(div);
+  });
+}
+
+async function poll() {
+  try {
+    const res = await fetch("live_status.json?_=" + Date.now());
+    if (!res.ok) throw new Error("not found");
+    const state = await res.json();
+
+    document.getElementById("entity-name").textContent = state.entity || "En attente...";
+    const box = document.getElementById("node-box");
+    box.className = "node-box status-" + state.node_status;
+    document.getElementById("node-icon").textContent = NODE_ICONS[state.node_status] || "?";
+    document.getElementById("node-status-label").textContent = state.node_status.toUpperCase();
+
+    renderPipeline(state.steps || {});
+    renderLog(state.log || []);
+
+    const choicePanel = document.getElementById("choice-panel");
+    if (state.awaiting_choice && state.candidates && state.candidates.length > 0) {
+      choicePanel.style.display = "block";
+      const btnContainer = document.getElementById("choice-buttons");
+      btnContainer.innerHTML = "";
+      state.candidates.forEach(c => {
+        const btn = document.createElement("button");
+        btn.className = "choice-btn";
+        btn.innerHTML = `<strong>${c.action_id}</strong> <span class="risk-tag risk-${c.risk_level}">${c.risk_level}</span><br><span style="color:var(--muted)">${c.description}</span>`;
+        btn.onclick = () => sendChoice(c.action_id);
+        btnContainer.appendChild(btn);
+      });
+    } else {
+      choicePanel.style.display = "none";
+    }
+
+    const allDone = STEPS.every(s => (state.steps || {})[s] === "done");
+    document.getElementById("last-cycle-note").style.display =
+      (state.node_status === "healthy" && allDone) ? "block" : "none";
+
+    const hb = document.getElementById("heartbeat");
+    hb.classList.toggle("stopped", state.watching === false);
+    document.getElementById("heartbeat-label").textContent = state.watching === false ? "Arrêté" : "En surveillance";
+
+    const age = Math.round(Date.now() / 1000 - state.updated_at);
+    document.getElementById("footer").textContent = `Dernière mise à jour il y a ${age}s`;
+  } catch (e) {
+    document.getElementById("footer").textContent = "En attente de données — lance live_watch.py ou live_demo.py";
+  }
+}
+
+async function sendChoice(actionId) {
+  document.getElementById("choice-panel").style.display = "none";
+  try {
+    await fetch("/choose", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action_id: actionId }),
+    });
+  } catch (e) {
+    alert("Impossible d'envoyer le choix — le serveur live_server.py tourne-t-il bien ?");
+  }
+}
+
+renderPipeline({});
+poll();
+setInterval(poll, 1000);
+</script>
+</body>
+</html>

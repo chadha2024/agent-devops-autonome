@@ -1,0 +1,15 @@
+# EXEMPLE — à adapter avec ta vraie zone DNS Route53 et tes vrais
+# enregistrements (cf. tes fichiers Terraform existants, ex: vpc.tf).
+---
+- hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Basculer l'enregistrement DNS vers la cible de secours
+      amazon.aws.route53:
+        state: present
+        zone: "REMPLACE_PAR_TA_ZONE.exemple.com"
+        record: "{{ record_name }}"
+        type: A
+        ttl: 60
+        value: "{{ new_target }}"
+        overwrite: true
